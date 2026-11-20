@@ -1,0 +1,878 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:,">
+<title>Photo to Vector</title>
+<script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
+<style>
+:root{
+  --bg:#f4f1ea; --surface:#ffffff; --surface2:#ece8df; --ink:#171512; --muted:#6b675f;
+  --line:#ddd6c8; --accent:#e85d04; --accent-ink:#fff; --accent2:#1a7a4c; --radius:14px;
+  --shadow:0 6px 24px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#121110; --surface:#1e1c19; --surface2:#292622; --ink:#f2ede4; --muted:#a8a198; --line:#38342e; --shadow:0 6px 24px rgba(0,0,0,.35); }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-system,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.45}
+a{color:var(--accent)}
+button,[role="button"],select,input{font:inherit}
+button{min-height:44px}
+.wrap{max-width:980px;margin:0 auto;padding:16px 16px 40px}
+.top{padding:10px 0 4px}
+.top h1{font-size:32px;line-height:1.05;margin:0;letter-spacing:-.02em;font-weight:850}
+.top h1 span{color:var(--accent)}
+.top p{margin:8px 0 0;color:var(--muted);font-size:16px;max-width:620px}
+.grid{display:grid;gap:16px}
+@media(min-width:760px){.grid2{grid-template-columns:1.15fr .85fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;box-shadow:var(--shadow)}
+.card h2{margin:0 0 4px;font-size:17px;letter-spacing:-.01em}
+.card h2 .num{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--bg);align-items:center;justify-content:center;font-size:13px;margin-right:8px;vertical-align:2px}
+.sub{color:var(--muted);font-size:14px;margin:0 0 14px}
+.btnrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:560px){.btnrow{grid-template-columns:1fr}}
+.btn{border:1px solid var(--line);background:var(--surface2);color:var(--ink);border-radius:12px;padding:12px 10px;text-align:left;cursor:pointer;display:flex;gap:10px;align-items:flex-start;min-height:64px}
+.btn strong{display:block;font-size:15px;line-height:1.2}
+.btn small{color:var(--muted);display:block;margin-top:2px;line-height:1.3}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary small{color:rgba(255,255,255,.85)}
+.btn:active{transform:scale(.99)}
+.icon{font-size:22px;line-height:1;margin-top:2px}
+.camwrap{margin-top:14px;display:none}
+.camwrap.open{display:block}
+.viewport{background:#000;border-radius:14px;overflow:hidden;position:relative;aspect-ratio:4/3}
+.viewport video,.viewport canvas,.viewport img{width:100%;height:100%;object-fit:contain;display:block;background:#111}
+.viewport video{object-fit:cover}
+.camcontrols{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.pill{border-radius:999px;padding:10px 16px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:700}
+.pill.accent{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pill.ghost{background:transparent}
+.status{font-size:13.5px;color:var(--muted);background:var(--surface2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:12px}
+.status b{color:var(--ink)}
+.hidden{display:none!important}
+.seg{display:flex;background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:4px;gap:4px}
+.seg button{flex:1;border:0;background:transparent;border-radius:999px;padding:9px 6px;cursor:pointer;font-weight:700;font-size:14px;color:var(--muted);min-height:40px}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 6px rgba(0,0,0,.12)}
+label.field{display:block;margin-top:16px}
+label.field span{display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin-bottom:6px}
+label.field span output{font-weight:800;color:var(--accent)}
+input[type=range]{width:100%;accent-color:var(--accent);height:36px}
+.check{display:flex;align-items:center;gap:10px;padding:10px 0;cursor:pointer;font-weight:600}
+.check input{width:22px;height:22px;accent-color:var(--accent);flex:0 0 auto}
+.previewbox{background:repeating-conic-gradient(#e9e4d8 0 25%, #f7f3eb 0 50%) 0 0/22px 22px;border:1px solid var(--line);border-radius:14px;min-height:260px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+@media(prefers-color-scheme:dark){.previewbox{background:repeating-conic-gradient(#2a2723 0 25%, #1e1c19 0 50%) 0 0/22px 22px}}
+.previewbox svg,.previewbox img{max-width:100%;max-height:420px;width:auto;height:auto;display:block}
+.empty{ text-align:center;color:var(--muted);padding:32px 18px}
+.empty .big{font-size:36px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}
+.tabs button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-weight:700;min-height:40px}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.chip{background:var(--surface2);border:1px solid var(--line);border-radius:999px;padding:6px 10px;font-size:13px;font-weight:700}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+@media(max-width:520px){.actions{grid-template-columns:1fr}}
+.download{background:var(--accent2);color:#fff;border:0;border-radius:12px;padding:14px;font-weight:850;cursor:pointer;font-size:16px}
+.secondary{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;font-weight:800;cursor:pointer}
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.presets button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:700;min-height:40px}
+.presets button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent);background:color-mix(in srgb, var(--accent) 10%, var(--surface))}
+details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+summary{cursor:pointer;font-weight:800;min-height:36px;display:flex;align-items:center}
+textarea{width:100%;min-height:110px;border:1px solid var(--line);border-radius:10px;background:var(--surface2);color:var(--ink);padding:10px;font-family:ui-monospace,monospace;font-size:12px}
+.tips{font-size:14px;color:var(--muted);padding-left:18px;margin:8px 0 0}
+.tips li{margin:6px 0}
+button:disabled{opacity:.45!important;filter:grayscale(.4);cursor:not-allowed!important}
+.stylegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;margin-top:4px}
+.stylebtn{border:2px solid var(--line);background:var(--surface);border-radius:14px;padding:8px;cursor:pointer;text-align:left;color:var(--ink)}
+.stylebtn canvas{width:100%;height:auto;display:block;border-radius:8px;background:#fff;border:1px solid var(--line)}
+.stylebtn strong{display:block;font-size:14px;margin-top:8px;line-height:1.2}
+.stylebtn small{color:var(--muted);display:block;font-size:12px;margin-top:2px;line-height:1.3}
+.stylebtn[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 8%, var(--surface))}
+.generate{width:100%;background:var(--accent);color:#fff;border:0;border-radius:12px;padding:15px;font-weight:850;cursor:pointer;font-size:17px;margin-top:16px}
+.generate:active{transform:scale(.99)}
+.engprev{background:#fff}
+.engprev canvas{max-width:100%;max-height:460px;width:auto;height:auto;display:block}
+.footer{color:var(--muted);font-size:13px;text-align:center;margin-top:20px}
+.kbd{font-size:12px;background:var(--surface2);border:1px solid var(--line);padding:2px 6px;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>Photo <span>→</span> Vector</h1>
+    <p>Take a picture, trace it into clean vector paths, and download a real SVG — ready for a laser, Cricut, patch, sticker, or logo. Everything happens on your phone, nothing is uploaded.</p>
+  </div>
+
+  <div class="grid grid2" style="margin-top:16px">
+    <section class="card">
+      <h2><span class="num">1</span>Get a photo</h2>
+      <p class="sub">Live camera works in most browsers. If your browser blocks it inside this app, “Take photo” opens your phone’s native camera instead — same result.</p>
+
+      <div class="btnrow">
+        <button class="btn primary" id="btnLive">
+          <span class="icon">◉</span><span><strong>Live camera</strong><small>Preview &amp; snap here</small></span>
+        </button>
+        <label class="btn" for="captureInput" role="button" tabindex="0">
+          <span class="icon">📸</span><span><strong>Take photo</strong><small>Native camera app</small></span>
+        </label>
+        <label class="btn" for="galleryInput" role="button" tabindex="0">
+          <span class="icon">🖼️</span><span><strong>From gallery</strong><small>Pick an existing photo</small></span>
+        </label>
+      </div>
+      <input class="hidden" type="file" id="captureInput" accept="image/*" capture="environment">
+      <input class="hidden" type="file" id="galleryInput" accept="image/*">
+
+      <div class="camwrap" id="camWrap">
+        <div class="viewport"><video id="video" autoplay playsinline muted></video></div>
+        <div class="camcontrols">
+          <button class="pill accent" id="btnSnap">● &nbsp;Snap photo</button>
+          <button class="pill" id="btnFlip">Flip camera</button>
+          <button class="pill ghost" id="btnStop">Close camera</button>
+        </div>
+      </div>
+
+      <div class="status" id="statusBox"><b>Ready.</b> For the cleanest trace, shoot a subject with strong contrast — a logo, sign, silhouette, or black-and-white art works best. Busy photos work too in Poster mode.</div>
+
+      <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <button class="pill" id="btnSample">Try a sample shape</button>
+        <span style="font-size:13px;color:var(--muted)">No photo handy? Test the tracer instantly.</span>
+      </div>
+
+      <details>
+        <summary>Tips for laser-ready results</summary>
+        <ul class="tips">
+          <li>Use <b>B&amp;W Silhouette</b> mode, raise Detail, and adjust Threshold until the shape is solid black with clean edges.</li>
+          <li>Fill light gaps before you shoot — shadows become extra paths.</li>
+          <li>Downloaded SVG uses real paths (not an embedded photo), so it scales and cuts cleanly.</li>
+          <li>For a patch or sticker, Poster mode with 3–5 colors keeps the file simple.</li>
+        </ul>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2><span class="num">2</span>Trace it</h2>
+      <p class="sub">Change a setting and the vector updates. Start with a preset, then fine-tune.</p>
+
+      <div class="presets" id="presets">
+        <button data-preset="laser" aria-pressed="true">✦ Laser / Silhouette</button>
+        <button data-preset="logo" aria-pressed="false">Logo — 3 colors</button>
+        <button data-preset="poster" aria-pressed="false">Poster — 6 colors</button>
+        <button data-preset="photo" aria-pressed="false">Detailed photo</button>
+      </div>
+
+      <label class="field" style="margin-top:16px"><span>Mode</span></label>
+      <div class="seg" id="modeSeg">
+        <button data-mode="bw" aria-pressed="true">B&amp;W</button>
+        <button data-mode="color" aria-pressed="false">Color layers</button>
+        <button data-mode="gray" aria-pressed="false">Grayscale</button>
+      </div>
+
+      <label class="field" id="thresholdField"><span>Threshold — what counts as black <output id="thresholdOut">150</output></span>
+        <input type="range" id="threshold" min="20" max="235" value="150">
+      </label>
+
+      <label class="field hidden" id="colorsField"><span>Colors <output id="colorsOut">4</output></span>
+        <input type="range" id="colors" min="2" max="16" step="1" value="4">
+      </label>
+
+      <label class="field"><span>Detail — smaller wiggles kept <output id="detailOut">Medium</output></span>
+        <input type="range" id="detail" min="0" max="10" step="1" value="6">
+      </label>
+
+      <label class="field"><span>Smoothing — rounder corners <output id="smoothOut">Medium</output></span>
+        <input type="range" id="smooth" min="0" max="10" step="1" value="5">
+      </label>
+
+      <label class="check"><input type="checkbox" id="invert"> Invert black &amp; white</label>
+      <label class="check"><input type="checkbox" id="removeBg"> Make background transparent (B&amp;W: keep only the dark shape)</label>
+
+      <div class="status" id="traceStatus">Add a photo — your vector will appear in the “Your vector” section below.</div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:16px" id="engraveCard">
+    <h2><span class="num">3</span>Engraving styles</h2>
+    <p class="sub">Turn the same photo into a design that engraves beautifully on wood, acrylic, metal, or stone. Pick a style, set the image ratio, hit Generate — you’ll get a high-resolution PNG stamped at 300 DPI, ready for your laser software.</p>
+
+    <div class="stylegrid" id="styleGrid"></div>
+
+    <label class="field"><span>Image ratio — crops the photo before styling</span></label>
+    <div class="seg" id="ratioSeg">
+      <button data-ratio="orig" aria-pressed="true">Original</button>
+      <button data-ratio="1:1" aria-pressed="false">1:1</button>
+      <button data-ratio="4:3" aria-pressed="false">4:3</button>
+      <button data-ratio="3:2" aria-pressed="false">3:2</button>
+      <button data-ratio="16:9" aria-pressed="false">16:9</button>
+    </div>
+
+    <button class="generate" id="btnGenerate">Generate engraving</button>
+
+    <div class="previewbox engprev" id="engBox" style="margin-top:14px">
+      <div class="empty" id="engEmpty"><div class="big">✦</div><p><b>No engraving yet</b><br>Add a photo in step 1, choose a style, then tap Generate.</p></div>
+      <canvas id="engCanvas" class="hidden"></canvas>
+    </div>
+
+    <div class="stats">
+      <span class="chip" id="engStatStyle">Style: —</span>
+      <span class="chip" id="engStatSize">Size: —</span>
+      <span class="chip" id="engStatPrint">Print @ 300 DPI: —</span>
+    </div>
+
+    <div class="actions">
+      <button class="download" id="btnEngDownload" disabled style="opacity:.5">Download 300 DPI PNG ↓</button>
+      <button class="secondary" id="btnEngAgain" disabled>Regenerate</button>
+    </div>
+
+    <div class="status" id="engStatus">Add a photo in step 1 — the style previews above will fill in with your picture.</div>
+  </section>
+
+  <section class="card" style="margin-top:16px">
+    <h2><span class="num">4</span>Your vector</h2>
+    <p class="sub">Preview the original next to the traced result, then download the SVG.</p>
+    <div class="tabs">
+      <button id="tabVector" aria-pressed="true">Vector</button>
+      <button id="tabOriginal" aria-pressed="false">Original photo</button>
+      <button id="tabBoth" aria-pressed="false">Side by side</button>
+    </div>
+
+    <div id="bothWrap" class="hidden" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="previewbox"><img id="origImg2" alt="Original photo"></div>
+      <div class="previewbox" id="vecBox2"><div class="empty"><div class="big">⬡</div>No vector yet</div></div>
+    </div>
+
+    <div class="previewbox" id="mainBox">
+      <div class="empty" id="emptyState"><div class="big">⬡</div><p><b>No vector yet</b><br>Take or pick a photo and it will be traced here.</p></div>
+      <img id="origImg" class="hidden" alt="Original photo">
+      <div id="vecHolder" class="hidden" style="width:100%;display:flex;justify-content:center"></div>
+    </div>
+
+    <div class="stats">
+      <span class="chip" id="statSize">Size: —</span>
+      <span class="chip" id="statPaths">Paths: —</span>
+      <span class="chip" id="statFile">SVG file: —</span>
+    </div>
+
+    <div class="actions">
+      <button class="download" id="btnDownload" disabled style="opacity:.5">Download SVG ↓</button>
+      <button class="secondary" id="btnPng" disabled style="opacity:.5">Download PNG preview</button>
+      <button class="secondary" id="btnCopy" disabled>Copy SVG code</button>
+      <button class="secondary" id="btnRetake">Start over</button>
+    </div>
+
+    <details>
+      <summary>SVG code</summary>
+      <textarea id="svgCode" readonly placeholder="Your SVG markup will appear here after tracing…"></textarea>
+    </details>
+  </section>
+
+  <p class="footer">Tracing runs entirely in your browser — photos never leave your device. SVG files open in Illustrator, Inkscape, LightBurn, Glowforge, Cricut Design Space, and most laser software.</p>
+</div>
+
+<canvas id="work" class="hidden" width="800" height="600"></canvas>
+<canvas id="snapCanvas" class="hidden"></canvas>
+
+<script>
+(function(){
+  var video=document.getElementById('video'), camWrap=document.getElementById('camWrap');
+  var statusBox=document.getElementById('statusBox'), traceStatus=document.getElementById('traceStatus');
+  var work=document.getElementById('work'), wctx=work.getContext('2d',{willReadFrequently:true});
+  var stream=null, facing='environment', currentImage=null, currentSVG='', view='vector', tracing=false, debounce=null;
+
+  function setStatus(html){ statusBox.innerHTML=html; }
+  function $(id){return document.getElementById(id);}
+
+  // ---------- Camera ----------
+  async function startCamera(){
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+      setStatus('<b>Live camera isn\u2019t available in this browser view.</b> Use <b>Take photo</b> above — it opens your native camera and works the same way.');
+      $('captureInput').click(); return;
+    }
+    try{
+      stopCamera();
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing, width:{ideal:1920}, height:{ideal:1080}}, audio:false});
+      video.srcObject=stream; camWrap.classList.add('open');
+      setStatus('<b>Camera is live.</b> Frame your subject, then tap Snap photo.');
+    }catch(e){
+      setStatus('<b>Camera was blocked.</b> That\u2019s common inside an app webview. Use <b>Take photo</b> — it opens your native camera instead.');
+      camWrap.classList.remove('open');
+    }
+  }
+  function stopCamera(){ if(stream){ stream.getTracks().forEach(function(t){t.stop()}); stream=null; } video.srcObject=null; }
+  $('btnLive').addEventListener('click', startCamera);
+  $('btnStop').addEventListener('click', function(){ stopCamera(); camWrap.classList.remove('open'); });
+  $('btnFlip').addEventListener('click', function(){ facing = facing==='environment' ? 'user' : 'environment'; startCamera(); });
+  $('btnSnap').addEventListener('click', function(){
+    if(!video.videoWidth) return;
+    var c=$('snapCanvas'); c.width=video.videoWidth; c.height=video.videoHeight;
+    c.getContext('2d').drawImage(video,0,0);
+    var url=c.toDataURL('image/jpeg',0.92);
+    loadImageFromURL(url, 'Camera photo');
+    stopCamera(); camWrap.classList.remove('open');
+  });
+
+  // ---------- File inputs ----------
+  function handleFile(file){
+    if(!file) return;
+    var reader=new FileReader();
+    reader.onload=function(){ loadImageFromURL(reader.result, file.name||'Photo'); };
+    reader.readAsDataURL(file);
+  }
+  $('captureInput').addEventListener('change', function(e){ handleFile(e.target.files[0]); e.target.value=''; });
+  $('galleryInput').addEventListener('change', function(e){ handleFile(e.target.files[0]); e.target.value=''; });
+
+  // ---------- Sample ----------
+  $('btnSample').addEventListener('click', function(){
+    var c=document.createElement('canvas'); c.width=900; c.height=650; var x=c.getContext('2d');
+    x.fillStyle='#fff'; x.fillRect(0,0,900,650); x.fillStyle='#111';
+    // simple disc + basket-like test shape: bold, high contrast
+    x.beginPath(); x.arc(450,260,150,0,Math.PI*2); x.fill();
+    x.fillRect(430,410,40,160); x.fillRect(300,570,300,28);
+    x.fillStyle='#fff'; x.beginPath(); x.arc(450,260,92,0,Math.PI*2); x.fill();
+    x.fillStyle='#111'; x.font='900 92px system-ui'; x.textAlign='center'; x.fillText('★',450,295);
+    loadImageFromURL(c.toDataURL('image/png'), 'Sample shape');
+  });
+
+  // ---------- Load image ----------
+  function loadImageFromURL(url, name){
+    var img=new Image();
+    img.onload=function(){
+      currentImage=img;
+      if(window.__engOnPhoto) window.__engOnPhoto(img);
+      $('origImg').src=url; $('origImg2').src=url;
+      setStatus('<b>'+escapeHtml(name)+' loaded</b> — ' + img.naturalWidth + ' × ' + img.naturalHeight + ' px. Tracing now…');
+      traceSoon(0);
+      document.querySelectorAll('.card')[1].scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    img.onerror=function(){ setStatus('<b>That file couldn\u2019t be read as a photo.</b> Try a JPG or PNG from your gallery.'); };
+    img.src=url;
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,function(m){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];}); }
+
+  // ---------- Controls ----------
+  var mode='bw';
+  function syncModeUI(){
+    $('thresholdField').classList.toggle('hidden', mode!=='bw' && mode!=='gray');
+    $('colorsField').classList.toggle('hidden', mode==='bw');
+    if(mode==='gray') $('colorsField').classList.remove('hidden');
+  }
+  $('modeSeg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    mode=b.dataset.mode;
+    document.querySelectorAll('#modeSeg button').forEach(function(x){x.setAttribute('aria-pressed', x===b?'true':'false');});
+    syncModeUI(); traceSoon();
+  });
+  $('presets').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    document.querySelectorAll('#presets button').forEach(function(x){x.setAttribute('aria-pressed', x===b?'true':'false');});
+    var p=b.dataset.preset;
+    if(p==='laser'){ setMode('bw'); $('threshold').value=150; $('detail').value=7; $('smooth').value=4; $('invert').checked=false; }
+    if(p==='logo'){ setMode('color'); $('colors').value=3; $('detail').value=7; $('smooth').value=5; }
+    if(p==='poster'){ setMode('color'); $('colors').value=6; $('detail').value=5; $('smooth').value=5; }
+    if(p==='photo'){ setMode('color'); $('colors').value=12; $('detail').value=8; $('smooth').value=3; }
+    updateOutputs(); traceSoon();
+  });
+  function setMode(m){ mode=m; document.querySelectorAll('#modeSeg button').forEach(function(x){x.setAttribute('aria-pressed', x.dataset.mode===m?'true':'false');}); syncModeUI(); }
+  function detailLabel(v){ return v<=2?'Low':v<=5?'Medium':v<=8?'High':'Max'; }
+  function updateOutputs(){
+    $('thresholdOut').textContent=$('threshold').value;
+    $('colorsOut').textContent=$('colors').value;
+    $('detailOut').textContent=detailLabel(+$('detail').value);
+    $('smoothOut').textContent=detailLabel(+$('smooth').value);
+  }
+  ['threshold','colors','detail','smooth'].forEach(function(id){ $(id).addEventListener('input', function(){ updateOutputs(); traceSoon(); }); });
+  $('invert').addEventListener('change', traceSoon);
+  $('removeBg').addEventListener('change', traceSoon);
+  updateOutputs(); syncModeUI();
+
+  function traceSoon(ms){ clearTimeout(debounce); debounce=setTimeout(trace, ms==null?220:ms); }
+
+  // ---------- Tracing ----------
+  function trace(){
+    if(!currentImage || tracing) return;
+    tracing=true; traceStatus.innerHTML='Tracing…';
+    setTimeout(function(){
+      try{ doTrace(); }catch(err){ traceStatus.innerHTML='<b>Tracing hit a snag on this image.</b> Try Poster mode or a smaller / higher-contrast photo.'; }
+      tracing=false;
+    }, 30);
+  }
+
+  function doTrace(){
+    var img=currentImage;
+    var maxDim = (+$('detail').value>=8) ? 900 : 720;
+    var scale=Math.min(1, maxDim/Math.max(img.naturalWidth, img.naturalHeight));
+    var W=Math.max(10, Math.round(img.naturalWidth*scale)), H=Math.max(10, Math.round(img.naturalHeight*scale));
+    work.width=W; work.height=H; wctx.drawImage(img,0,0,W,H);
+    var imgd=wctx.getImageData(0,0,W,H);
+    var detail=+$('detail').value, smooth=+$('smooth').value;
+    var pathomit = Math.max(0, Math.round((10-detail)*1.2)); // high detail -> keep more
+    var ltres = 2.2 - (smooth*0.18); if(ltres<0.4) ltres=0.4;
+    var qtres = 2.2 - (smooth*0.18); if(qtres<0.4) qtres=0.4;
+    var svg='';
+
+    if(window.ImageTracer && typeof ImageTracer.imagedataToSVG==='function'){
+      if(mode==='bw'){
+        var thr=+$('threshold').value, inv=$('invert').checked, data=imgd.data;
+        var copy=new ImageData(new Uint8ClampedArray(data), W, H); var d=copy.data;
+        for(var i=0;i<d.length;i+=4){
+          var g=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+          var black = g < thr; if(inv) black=!black;
+          var v= black?0:255; d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=255;
+        }
+        svg=ImageTracer.imagedataToSVG(copy, {ltres:ltres,qtres:qtres,pathomit:pathomit,numberofcolors:2,mincolorratio:0,scale:1,lcpr:0,qcpr:0,desc:false,viewbox:true,blurradius:0,blurdelta:20});
+        if($('removeBg').checked) svg=stripWhitePaths(svg);
+      } else if(mode==='gray'){
+        var n=+$('colors').value;
+        svg=ImageTracer.imagedataToSVG(imgd, {ltres:ltres,qtres:qtres,pathomit:pathomit,numberofcolors:n, mincolorratio:0.02, scale:1, pal:{r:[],g:[],b:[],a:[]}, desc:false, viewbox:true});
+        svg=toGrayscaleSVG(svg);
+      } else {
+        var nc=+$('colors').value;
+        svg=ImageTracer.imagedataToSVG(imgd, {ltres:ltres,qtres:qtres,pathomit:pathomit,numberofcolors:nc, mincolorratio:0.02, colorquantcycles:3, scale:1, desc:false, viewbox:true, blurradius:0, blurdelta:20});
+      }
+    } else {
+      svg=fallbackTrace(imgd, W, H);
+    }
+
+    if(!svg || svg.indexOf('<path')===-1){
+      traceStatus.innerHTML='<b>No paths found.</b> Try moving the Threshold slider — the image may be all one side of it.';
+      return;
+    }
+    // Normalize header
+    svg=ensureSVGHeader(svg, W, H);
+    currentSVG=svg;
+    renderVector(svg, W, H);
+  }
+
+  function stripWhitePaths(svg){
+    // Remove paths filled white / #fff / rgb(255,255,255) to leave transparent bg
+    return svg.replace(/<path[^>]*fill="rgb\(255,255,255\)"[^>]*\/?>(?:<\/path>)?/g,'')
+              .replace(/<path[^>]*fill="#ffffff"[^>]*\/?>(?:<\/path>)?/gi,'')
+              .replace(/<path[^>]*fill="#fff"[^>]*\/?>(?:<\/path>)?/gi,'');
+  }
+  function toGrayscaleSVG(svg){
+    return svg.replace(/fill="rgb\((\d+),(\d+),(\d+)\)"/g, function(m,r,g,b){
+      var y=Math.round(0.299*r+0.587*g+0.114*b); return 'fill="rgb('+y+','+y+','+y+')"';
+    });
+  }
+  function ensureSVGHeader(svg,W,H){
+    if(svg.indexOf('xmlns')===-1) svg=svg.replace('<svg','<svg xmlns="http://www.w3.org/2000/svg"');
+    if(!/width=/.test(svg.slice(0,300))) svg=svg.replace('<svg','<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'"');
+    return svg;
+  }
+
+  // Fallback tracer (marching-squares style via ImageTracer absence): threshold to bitmap, then trace rectangles merged per row as paths — simple but valid vector.
+  function fallbackTrace(imgd,W,H){
+    var thr=+$('threshold').value, inv=$('invert').checked, d=imgd.data;
+    var paths='';
+    for(var y=0;y<H;y++){
+      var x=0;
+      while(x<W){
+        var idx=(y*W+x)*4; var g=0.299*d[idx]+0.587*d[idx+1]+0.114*d[idx+2]; var black=g<thr; if(inv) black=!black;
+        if(black){
+          var x0=x; while(x<W){ var j=(y*W+x)*4; var gg=0.299*d[j]+0.587*d[j+1]+0.114*d[j+2]; var bb=gg<thr; if(inv) bb=!bb; if(!bb) break; x++; }
+          paths+='<path fill="rgb(0,0,0)" d="M'+x0+' '+y+' L'+x+' '+y+' L'+x+' '+(y+1)+' L'+x0+' '+(y+1)+' Z"/>';
+        } else x++;
+      }
+    }
+    return '<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'+paths+'</svg>';
+  }
+
+  function renderVector(svg,W,H){
+    $('vecHolder').innerHTML=svg;
+    var svgEl=$('vecHolder').querySelector('svg'); if(svgEl){ svgEl.style.maxWidth='100%'; svgEl.style.height='auto'; }
+    $('vecBox2').innerHTML=svg;
+    var svg2=$('vecBox2').querySelector('svg'); if(svg2){ svg2.style.maxWidth='100%'; svg2.style.height='auto'; }
+    $('emptyState').classList.add('hidden'); $('origImg').classList.add('hidden'); $('vecHolder').classList.remove('hidden');
+    if(view==='original') showView('original'); else if(view==='both') showView('both');
+    var paths=(svg.match(/<path/g)||[]).length;
+    var kb=(new Blob([svg]).size/1024).toFixed(1);
+    $('statSize').textContent='Size: '+W+' × '+H;
+    $('statPaths').textContent='Paths: '+paths.toLocaleString();
+    $('statFile').textContent='SVG file: '+kb+' KB';
+    $('svgCode').value=svg;
+    var dl=$('btnDownload'), png=$('btnPng'); dl.disabled=false; png.disabled=false; dl.style.opacity=1; png.style.opacity=1; $('btnCopy').disabled=false;
+    traceStatus.innerHTML='<b>Done.</b> '+paths.toLocaleString()+' path'+(paths===1?'':'s')+' · '+kb+' KB SVG. Download it below, or tweak Detail / Threshold to simplify.';
+  }
+
+  // ---------- Views ----------
+  function showView(v){
+    view=v;
+    $('tabVector').setAttribute('aria-pressed', v==='vector'?'true':'false');
+    $('tabOriginal').setAttribute('aria-pressed', v==='original'?'true':'false');
+    $('tabBoth').setAttribute('aria-pressed', v==='both'?'true':'false');
+    $('bothWrap').classList.toggle('hidden', v!=='both');
+    $('mainBox').classList.toggle('hidden', v==='both');
+    if(v==='original'){ $('origImg').classList.remove('hidden'); $('vecHolder').classList.add('hidden'); $('emptyState').classList.toggle('hidden', !!currentImage); }
+    if(v==='vector'){ $('origImg').classList.add('hidden'); if(currentSVG) $('vecHolder').classList.remove('hidden'); }
+  }
+  $('tabVector').addEventListener('click', function(){showView('vector');});
+  $('tabOriginal').addEventListener('click', function(){showView('original');});
+  $('tabBoth').addEventListener('click', function(){showView('both');});
+
+  // ---------- Downloads ----------
+  $('btnDownload').addEventListener('click', function(){
+    if(!currentSVG) return;
+    var blob=new Blob([currentSVG],{type:'image/svg+xml'}); var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='photo-vector.svg'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},2000);
+  });
+  $('btnPng').addEventListener('click', function(){
+    if(!currentSVG) return;
+    var blob=new Blob([currentSVG],{type:'image/svg+xml'}); var url=URL.createObjectURL(blob); var im=new Image();
+    im.onload=function(){
+      var c=document.createElement('canvas'); c.width=im.width||900; c.height=im.height||650;
+      var x=c.getContext('2d'); x.fillStyle='#ffffff'; x.fillRect(0,0,c.width,c.height); x.drawImage(im,0,0);
+      var a=document.createElement('a'); a.href=c.toDataURL('image/png'); a.download='photo-vector-preview.png'; a.click(); URL.revokeObjectURL(url);
+    }; im.src=url;
+  });
+  $('btnCopy').addEventListener('click', async function(){
+    if(!currentSVG){ $('svgCode').value=''; traceStatus.textContent='Trace a photo first, then copy its SVG code.'; return; }
+    try{ await navigator.clipboard.writeText(currentSVG); this.textContent='Copied ✓'; var b=this; setTimeout(function(){b.textContent='Copy SVG code';},1600); }
+    catch(e){ $('svgCode').select(); document.execCommand && document.execCommand('copy'); }
+  });
+  $('btnRetake').addEventListener('click', function(){
+    currentImage=null; currentSVG=''; stopCamera(); camWrap.classList.remove('open');
+    if(window.__engOnClear) window.__engOnClear();
+    $('vecHolder').innerHTML=''; $('vecHolder').classList.add('hidden'); $('origImg').classList.add('hidden');
+    $('emptyState').classList.remove('hidden'); $('svgCode').value='';
+    $('statSize').textContent='Size: —'; $('statPaths').textContent='Paths: —'; $('statFile').textContent='SVG file: —';
+    $('btnDownload').disabled=true; $('btnPng').disabled=true; $('btnCopy').disabled=true; $('btnDownload').style.opacity=.5; $('btnPng').style.opacity=.5;
+    setStatus('<b>Ready.</b> Take or pick another photo to start again.');
+    window.scrollTo({top:0,behavior:'smooth'});
+  });
+})();
+</script>
+
+<script>
+// ---------- Engraving styles (step 3) ----------
+(function(){
+  function $(id){ return document.getElementById(id); }
+  var STYLES=[
+    {id:'master',   name:'Master Pencil',  desc:'Fine, soft pencil shading'},
+    {id:'pencil',   name:'Pencil Sketch',  desc:'Classic sketch, soft tones'},
+    {id:'drawing',  name:'Drawing',        desc:'Clean edge line art'},
+    {id:'engraving',name:'Deep Engraving', desc:'Cross-hatched line work'},
+    {id:'relief',   name:'Stone Relief',   desc:'Carved, embossed look'},
+    {id:'doodle',   name:'Goofy Doodle',   desc:'Bold cartoon lines'},
+    {id:'stipple',  name:'Stipple',        desc:'Dots sized by shadow'}
+  ];
+  var style='master', ratio='orig', photo=null, result=null, resultStyle='';
+
+  // Build style picker
+  var grid=$('styleGrid'), thumbCanvases={};
+  STYLES.forEach(function(s){
+    var b=document.createElement('button');
+    b.className='stylebtn'; b.dataset.style=s.id;
+    b.setAttribute('aria-pressed', s.id===style?'true':'false');
+    var c=document.createElement('canvas'); c.width=264; c.height=198;
+    var cx=c.getContext('2d'); cx.fillStyle='#f3efe7'; cx.fillRect(0,0,264,198);
+    cx.fillStyle='#b9b2a4'; cx.font='700 15px system-ui'; cx.textAlign='center';
+    cx.fillText('Add a photo',132,104);
+    var st=document.createElement('strong'); st.textContent=s.name;
+    var sm=document.createElement('small'); sm.textContent=s.desc;
+    b.appendChild(c); b.appendChild(st); b.appendChild(sm);
+    b.addEventListener('click', function(){
+      style=s.id;
+      document.querySelectorAll('#styleGrid .stylebtn').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.style===style?'true':'false'); });
+      setEngStatus(photo ? '<b>'+s.name+' selected.</b> Tap <b>Generate engraving</b> to render it full-size.' : 'Add a photo in step 1 first — then pick <b>'+s.name+'</b> and tap Generate.');
+    });
+    grid.appendChild(b); thumbCanvases[s.id]=c;
+  });
+  $('ratioSeg').addEventListener('click', function(e){
+    var b=e.target.closest('button'); if(!b) return;
+    ratio=b.dataset.ratio;
+    document.querySelectorAll('#ratioSeg button').forEach(function(x){ x.setAttribute('aria-pressed', x===b?'true':'false'); });
+    buildThumbs();
+    if(result){ setEngStatus('<b>Ratio changed to '+(ratio==='orig'?'Original':ratio)+'.</b> Tap Generate to re-render at the new crop.'); }
+  });
+
+  function setEngStatus(html){ $('engStatus').innerHTML=html; }
+  function styleName(id){ for(var i=0;i<STYLES.length;i++) if(STYLES[i].id===id) return STYLES[i].name; return id; }
+
+  // ---------- Image helpers ----------
+  function cropCanvas(img, maxDim){
+    var W=img.naturalWidth, H=img.naturalHeight, tw=W, th=H;
+    if(ratio!=='orig'){
+      var p=ratio.split(':'), r=(+p[0])/(+p[1]);
+      if(W/H>r) tw=Math.round(H*r); else th=Math.round(W/r);
+    }
+    var scale=Math.min(1, maxDim/Math.max(tw,th));
+    var ow=Math.max(8,Math.round(tw*scale)), oh=Math.max(8,Math.round(th*scale));
+    var c=document.createElement('canvas'); c.width=ow; c.height=oh;
+    c.getContext('2d').drawImage(img,(W-tw)/2,(H-th)/2,tw,th,0,0,ow,oh);
+    return c;
+  }
+  function grayOf(canvas){
+    var w=canvas.width, h=canvas.height;
+    var d=canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data;
+    var g=new Float32Array(w*h);
+    for(var i=0,j=0;i<d.length;i+=4,j++) g[j]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+    return {g:g,w:w,h:h};
+  }
+  function boxBlur(src,w,h,r){
+    var tmp=new Float32Array(src.length), out=new Float32Array(src.length), x,y,i,acc,lo,hi,n;
+    for(y=0;y<h;y++){ var row=y*w; acc=0;
+      for(x=-r;x<=r;x++){ var cx=Math.min(w-1,Math.max(0,x)); acc+=src[row+cx]; }
+      for(x=0;x<w;x++){ tmp[row+x]=acc/(2*r+1);
+        lo=Math.min(w-1,Math.max(0,x-r)); hi=Math.min(w-1,Math.max(0,x+r+1));
+        acc+=src[row+hi]-src[row+lo]; }
+    }
+    for(x=0;x<w;x++){ acc=0;
+      for(y=-r;y<=r;y++){ var cy=Math.min(h-1,Math.max(0,y)); acc+=tmp[cy*w+x]; }
+      for(y=0;y<h;y++){ out[y*w+x]=acc/(2*r+1);
+        lo=Math.min(h-1,Math.max(0,y-r)); hi=Math.min(h-1,Math.max(0,y+r+1));
+        acc+=tmp[hi*w+x]-tmp[lo*w+x]; }
+    }
+    return out;
+  }
+  function blurGray(g,w,h,r){ if(r<1) return g; var a=boxBlur(g,w,h,r); return boxBlur(a,w,h,r); }
+  function grayToCanvas(g,w,h){
+    var c=document.createElement('canvas'); c.width=w; c.height=h;
+    var ctx=c.getContext('2d'), img=ctx.createImageData(w,h), d=img.data;
+    for(var i=0,j=0;i<d.length;i+=4,j++){ var v=g[j]<0?0:g[j]>255?255:g[j]; d[i]=v; d[i+1]=v; d[i+2]=v; d[i+3]=255; }
+    ctx.putImageData(img,0,0); return c;
+  }
+  function sobel(g,w,h){
+    var mag=new Float32Array(w*h), x,y,i,gx,gy;
+    for(y=1;y<h-1;y++) for(x=1;x<w-1;x++){
+      i=y*w+x;
+      gx=(g[i-w+1]+2*g[i+1]+g[i+w+1])-(g[i-w-1]+2*g[i-1]+g[i+w-1]);
+      gy=(g[i+w-1]+2*g[i+w]+g[i+w+1])-(g[i-w-1]+2*g[i-w]+g[i-w+1]);
+      mag[i]=Math.sqrt(gx*gx+gy*gy);
+    }
+    return mag;
+  }
+  function darknessGrid(srcCanvas, cell){
+    var w=srcCanvas.width, h=srcCanvas.height;
+    var gw=Math.max(1,Math.round(w/cell)), gh=Math.max(1,Math.round(h/cell));
+    var t=document.createElement('canvas'); t.width=gw; t.height=gh;
+    t.getContext('2d').drawImage(srcCanvas,0,0,gw,gh);
+    var d=t.getContext('2d').getImageData(0,0,gw,gh).data, dark=new Float32Array(gw*gh);
+    for(var i=0,j=0;i<d.length;i+=4,j++) dark[j]=1-(0.299*d[i]+0.587*d[i+1]+0.114*d[i+2])/255;
+    return {dark:dark,gw:gw,gh:gh};
+  }
+  function hash(n){ var s=Math.sin(n*127.1+311.7)*43758.5453; return s-Math.floor(s); }
+
+  // ---------- The seven styles ----------
+  function dodgeBlend(g,w,h,blurR,mixGray){
+    var inv=new Float32Array(g.length), i;
+    for(i=0;i<g.length;i++) inv[i]=255-g[i];
+    var b=blurGray(inv,w,h,blurR), out=new Float32Array(g.length);
+    for(i=0;i<g.length;i++){
+      var den=255-b[i], v= den<=0.5 ? 255 : g[i]*255/den; if(v>255)v=255;
+      if(mixGray>0) v=v*(1-mixGray)+g[i]*mixGray;
+      out[i]=v;
+    }
+    return out;
+  }
+  function styleMaster(src){
+    var o=grayOf(src), w=o.w, h=o.h;
+    var out=dodgeBlend(o.g,w,h,Math.max(2,Math.round(w/240)),0.16);
+    for(var i=0;i<out.length;i++){ // fine pencil grain
+      var n=(hash(i)-0.5)*9; out[i]=Math.max(0,Math.min(255,out[i]*0.97+6+n));
+    }
+    return grayToCanvas(out,w,h);
+  }
+  function stylePencil(src){
+    var o=grayOf(src), w=o.w, h=o.h;
+    var out=dodgeBlend(o.g,w,h,Math.max(3,Math.round(w/120)),0);
+    for(var i=0;i<out.length;i++) out[i]=Math.max(0,Math.min(255,(out[i]-128)*1.06+128));
+    return grayToCanvas(out,w,h);
+  }
+  function styleDrawing(src){
+    var o=grayOf(src), w=o.w, h=o.h;
+    var soft=blurGray(o.g,w,h,Math.max(1,Math.round(w/500)));
+    var mag=sobel(soft,w,h), out=new Float32Array(w*h);
+    for(var i=0;i<out.length;i++){ var v=255-(mag[i]-55)*1.5; out[i]=v<0?0:v>255?255:v; }
+    return grayToCanvas(out,w,h);
+  }
+  function styleRelief(src){
+    var o=grayOf(src), w=o.w, h=o.h, g=o.g, out=new Float32Array(w*h), x,y,i;
+    for(y=0;y<h;y++) for(x=0;x<w;x++){
+      i=y*w+x;
+      var xm=Math.max(0,x-1), xp=Math.min(w-1,x+1), ym=Math.max(0,y-1), yp=Math.min(h-1,y+1);
+      var s=(-2*g[ym*w+xm]-g[ym*w+x]-g[y*w+xm]+g[y*w+xp]+g[yp*w+x]+2*g[yp*w+xp]);
+      var v=128+s*0.85; out[i]=v<0?0:v>255?255:v;
+    }
+    return grayToCanvas(out,w,h);
+  }
+  function styleDoodle(src){
+    var o=grayOf(src), w=o.w, h=o.h;
+    var soft=blurGray(o.g,w,h,Math.max(1,Math.round(w/420)));
+    var mag=sobel(soft,w,h), edge=new Float32Array(w*h), i;
+    for(i=0;i<edge.length;i++) edge[i]= mag[i]>85 ? 0 : 255;
+    var ec=grayToCanvas(edge,w,h);
+    var f=Math.max(2,Math.round(w/300)); // chunk factor thickens the lines
+    var small=document.createElement('canvas'); small.width=Math.max(2,Math.round(w/f)); small.height=Math.max(2,Math.round(h/f));
+    var sx=small.getContext('2d'); sx.imageSmoothingEnabled=false; sx.drawImage(ec,0,0,small.width,small.height);
+    var big=document.createElement('canvas'); big.width=w; big.height=h;
+    var bx=big.getContext('2d'); bx.imageSmoothingEnabled=false; bx.drawImage(small,0,0,w,h);
+    var thick=grayOf(big).g, out=new Float32Array(w*h);
+    for(i=0;i<out.length;i++){
+      var post= o.g[i]<100 ? 25 : 255;               // dark masses fill near-black
+      out[i]=Math.min(post, thick[i]);               // bold chunky outlines on top
+    }
+    return grayToCanvas(out,w,h);
+  }
+  function hatchPass(ctx,grid,cell,dir,tier){
+    var gw=grid.gw, gh=grid.gh, dark=grid.dark;
+    ctx.beginPath();
+    for(var y=0;y<gh;y++) for(var x=0;x<gw;x++){
+      var d=dark[y*gw+x]; if(d<tier) continue;
+      var cx=x*cell+cell/2, cy=y*cell+cell/2, e=cell*0.62;
+      if(dir===0){ ctx.moveTo(cx-e,cy); ctx.lineTo(cx+e,cy); }
+      else if(dir===1){ ctx.moveTo(cx,cy-e); ctx.lineTo(cx,cy+e); }
+      else if(dir===2){ ctx.moveTo(cx-e,cy-e); ctx.lineTo(cx+e,cy+e); }
+      else { ctx.moveTo(cx-e,cy+e); ctx.lineTo(cx+e,cy-e); }
+    }
+    ctx.stroke();
+  }
+  function styleEngraving(src){
+    var w=src.width, h=src.height;
+    var cell=Math.max(4,Math.min(10,Math.round(w/260)));
+    var grid=darknessGrid(src,cell);
+    var c=document.createElement('canvas'); c.width=w; c.height=h;
+    var ctx=c.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+    ctx.strokeStyle='#141414'; ctx.lineCap='round'; ctx.lineWidth=Math.max(1.1,cell*0.30);
+    hatchPass(ctx,grid,cell,0,0.14);  // horizontal — light tones
+    hatchPass(ctx,grid,cell,1,0.40);  // + vertical — mid tones (cross-hatch)
+    hatchPass(ctx,grid,cell,2,0.60);  // + diagonal — dark tones
+    hatchPass(ctx,grid,cell,3,0.80);  // + counter-diagonal — deepest shadow
+    return c;
+  }
+  function styleStipple(src){
+    var w=src.width, h=src.height;
+    var cell=Math.max(4,Math.min(9,Math.round(w/300)));
+    var grid=darknessGrid(src,cell), dark=grid.dark, gw=grid.gw, gh=grid.gh;
+    var c=document.createElement('canvas'); c.width=w; c.height=h;
+    var ctx=c.getContext('2d');
+    ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#141414'; ctx.beginPath();
+    for(var y=0;y<gh;y++) for(var x=0;x<gw;x++){
+      var idx=y*gw+x, d=dark[idx]; if(d<0.045) continue;
+      var r=cell*0.60*Math.sqrt(d); if(r<0.5) r=0.5;
+      var cx=x*cell+cell/2+(hash(idx)-0.5)*cell*0.55;
+      var cy=y*cell+cell/2+(hash(idx+7919)-0.5)*cell*0.55;
+      ctx.moveTo(cx+r,cy); ctx.arc(cx,cy,r,0,6.2832);
+    }
+    ctx.fill();
+    return c;
+  }
+  var RENDER={master:styleMaster,pencil:stylePencil,drawing:styleDrawing,engraving:styleEngraving,relief:styleRelief,doodle:styleDoodle,stipple:styleStipple};
+  var MAXDIM={master:2600,pencil:2600,drawing:2600,engraving:2000,relief:2600,doodle:2600,stipple:2000};
+
+  function render(styleId, maxDim){
+    var src=cropCanvas(photo, maxDim||MAXDIM[styleId]);
+    return RENDER[styleId](src);
+  }
+
+  // ---------- Thumbnails ----------
+  var thumbTimer=null;
+  function buildThumbs(){
+    if(!photo) return;
+    clearTimeout(thumbTimer);
+    thumbTimer=setTimeout(function(){
+      STYLES.forEach(function(s){
+        try{
+          var out=render(s.id,330), tc=thumbCanvases[s.id];
+          tc.width=out.width; tc.height=out.height;
+          tc.getContext('2d').drawImage(out,0,0);
+        }catch(e){/* thumbnail is best-effort */}
+      });
+    },60);
+  }
+
+  // ---------- Generate + download ----------
+  function generate(){
+    if(!photo){
+      setEngStatus('<b>No photo yet.</b> Use <b>Take photo</b> or <b>From gallery</b> in step 1, then come back and tap Generate.');
+      window.scrollTo({top:0,behavior:'smooth'});
+      return;
+    }
+    var btn=$('btnGenerate'); btn.disabled=true; btn.textContent='Generating…';
+    setEngStatus('Rendering <b>'+styleName(style)+'</b> at full resolution…');
+    setTimeout(function(){
+      try{
+        result=render(style); resultStyle=style;
+        var ec=$('engCanvas'); ec.width=result.width; ec.height=result.height;
+        ec.getContext('2d').drawImage(result,0,0);
+        ec.classList.remove('hidden'); $('engEmpty').classList.add('hidden');
+        var dl=$('btnEngDownload'); dl.disabled=false; dl.style.opacity=1; $('btnEngAgain').disabled=false;
+        $('engStatStyle').textContent='Style: '+styleName(style);
+        $('engStatSize').textContent='Size: '+result.width+' × '+result.height+' px';
+        $('engStatPrint').textContent='Print @ 300 DPI: '+(result.width/300).toFixed(1)+' × '+(result.height/300).toFixed(1)+' in';
+        setEngStatus('<b>Done.</b> '+styleName(style)+' at '+result.width+' × '+result.height+' px — that prints at '+(result.width/300).toFixed(1)+' × '+(result.height/300).toFixed(1)+' inches at 300 DPI. Download the PNG below.');
+        $('engBox').scrollIntoView({behavior:'smooth',block:'center'});
+      }catch(e){
+        setEngStatus('<b>Generating hit a snag on this photo.</b> Try a different style, or a smaller photo.');
+      }
+      btn.disabled=false; btn.textContent='Generate engraving';
+    },40);
+  }
+  $('btnGenerate').addEventListener('click', generate);
+  $('btnEngAgain').addEventListener('click', generate);
+
+  // PNG with a 300 DPI pHYs chunk (11811 px per meter)
+  var CRC_TABLE=null;
+  function crc32(bytes){
+    if(!CRC_TABLE){ CRC_TABLE=new Int32Array(256);
+      for(var n=0;n<256;n++){ var c=n; for(var k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); CRC_TABLE[n]=c; } }
+    var crc=0xFFFFFFFF;
+    for(var i=0;i<bytes.length;i++) crc=CRC_TABLE[(crc^bytes[i])&0xFF]^(crc>>>8);
+    return (crc^0xFFFFFFFF)>>>0;
+  }
+  function pngWith300DPI(buf){
+    var data=new Uint8Array(buf), ppm=Math.round(300/0.0254);
+    var chunk=new Uint8Array(21), dv=new DataView(chunk.buffer);
+    dv.setUint32(0,9);
+    chunk[4]=0x70; chunk[5]=0x48; chunk[6]=0x59; chunk[7]=0x73; // "pHYs"
+    dv.setUint32(8,ppm); dv.setUint32(12,ppm); chunk[16]=1;
+    dv.setUint32(17,crc32(chunk.subarray(4,17)));
+    var out=new Uint8Array(data.length+21); // insert right after IHDR (byte 33)
+    out.set(data.subarray(0,33),0); out.set(chunk,33); out.set(data.subarray(33),54);
+    return new Blob([out],{type:'image/png'});
+  }
+  $('btnEngDownload').addEventListener('click', function(){
+    if(!result) return;
+    var btn=this; btn.disabled=true;
+    result.toBlob(function(blob){
+      if(!blob){ btn.disabled=false; return; }
+      blob.arrayBuffer().then(function(buf){
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(pngWith300DPI(buf));
+        a.download='engraving-'+resultStyle+'-300dpi.png';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); },3000);
+        btn.disabled=false;
+        setEngStatus('<b>Saved.</b> Your '+styleName(resultStyle)+' PNG is stamped at 300 DPI — open it in LightBurn or your laser software and it will come in at true print size.');
+      });
+    },'image/png');
+  });
+
+  // ---------- Photo lifecycle hooks (called from the step 1/2 script) ----------
+  window.__engOnPhoto=function(img){
+    photo=img; result=null;
+    $('btnEngDownload').disabled=true; $('btnEngDownload').style.opacity=.5; $('btnEngAgain').disabled=true;
+    $('engCanvas').classList.add('hidden'); $('engEmpty').classList.remove('hidden');
+    $('engStatStyle').textContent='Style: —'; $('engStatSize').textContent='Size: —'; $('engStatPrint').textContent='Print @ 300 DPI: —';
+    setEngStatus('<b>Photo loaded.</b> The previews above show your picture in every style — pick one, set the ratio, then tap <b>Generate engraving</b>.');
+    buildThumbs();
+  };
+  window.__engOnClear=function(){
+    photo=null; result=null;
+    STYLES.forEach(function(s){
+      var tc=thumbCanvases[s.id]; tc.width=264; tc.height=198;
+      var cx=tc.getContext('2d'); cx.fillStyle='#f3efe7'; cx.fillRect(0,0,264,198);
+      cx.fillStyle='#b9b2a4'; cx.font='700 15px system-ui'; cx.textAlign='center'; cx.fillText('Add a photo',132,104);
+    });
+    $('engCanvas').classList.add('hidden'); $('engEmpty').classList.remove('hidden');
+    $('btnEngDownload').disabled=true; $('btnEngDownload').style.opacity=.5; $('btnEngAgain').disabled=true;
+    setEngStatus('Add a photo in step 1 — the style previews above will fill in with your picture.');
+  };
+})();
+</script>
+</body>
+</html>
